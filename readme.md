@@ -18,9 +18,12 @@ d6113b9aa3f89f46512368fe8d5837ac
 
 
  # 2 get the popular movies on homepage
-
+             
           make a fetch request to TMDB on the endpoint of popular movies and get display it on the DOM
              GET/movie/popular        
              End-Point is : https://developer.themoviedb.org/reference/movie-popular-list 
 
-       lets create a function that we can use from within other functions to fetch data      
+       lets create a function that we can use from within other functions to fetch data  rather than calling fetch from every function where we need it......
+
+
+       
