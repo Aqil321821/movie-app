@@ -1,3 +1,8 @@
+#Live Preview
+https://movie-app-aqil.netlify.app/
+
+
+
 # API Key 
 d6113b9aa3f89f46512368fe8d5837ac
 
