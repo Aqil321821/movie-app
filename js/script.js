@@ -27,7 +27,8 @@ async function fetchAPIData(endpoint) {
   }
 }
 
-// Stars
+//some utils functions
+
 function getStarRating(vote) {
   const rounded = parseFloat(vote.toFixed(1));
   const fullStars = Math.floor(rounded / 2);
@@ -35,6 +36,14 @@ function getStarRating(vote) {
   const emptyStars = 5 - fullStars - halfStar;
 
   return '★'.repeat(fullStars) + '☆'.repeat(halfStar + emptyStars);
+}
+function convertMinutes(totalMinutes) {
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  return `${hours}h ${minutes}m`;
+}
+function addCommas(number) {
+  return number.toLocaleString();
 }
 
 // Display Popular Movies
@@ -135,6 +144,83 @@ async function displayPopularShows() {
   hideSpinner();
 }
 
+//display Movie Details:
+async function displayMovieDetails() {
+  // First check: is user offline?
+  if (!navigator.onLine) {
+    const container = document.querySelector('#movie-details');
+    if (container) {
+      container.innerHTML = `<p class="text-danger">You are offline. Please check your internet connection.</p>`;
+    }
+    return;
+  }
+  try {
+    const movieID = new URLSearchParams(window.location.search).get('id');
+    // safety check
+    if (!movieID) {
+      throw new Error('Movie ID not found');
+    }
+
+    const movie = await fetchAPIData(`movie/${movieID}`);
+
+    const companies = movie.production_companies.map((c) => c.name);
+    const movieGen = movie.genres.map((g) => g.name);
+
+    const div = document.createElement('div');
+
+    div.innerHTML = `
+      <div class="details-top">
+        <div>
+          ${
+            movie.poster_path
+              ? `<img src="https://image.tmdb.org/t/p/w500${movie.poster_path}" alt="${movie.title}" />`
+              : `<img src="images/no-image.jpg" alt="${movie.title}" />`
+          }
+        </div>
+        <div>
+          <h2>${movie.title}</h2>
+          <p><i class="fas fa-star text-primary"></i> ${movie.vote_average.toFixed(1)}</p>
+          <p class="text-muted">Release Date: ${movie.release_date}</p>
+          <p>${movie.overview}</p>
+
+          <h5>Genres</h5>
+          <ul class="list-group">
+            ${movieGen.map((g) => `<li>${g}</li>`).join('')}
+          </ul>
+
+          <a href="${movie.homepage}" target="_blank" class="btn">Movie Homepage</a>
+        </div>
+      </div>
+
+      <div class="details-bottom">
+        <h2>Movie Info</h2>
+        <ul>
+          <li><span class="text-secondary">Budget:</span> ${movie.budget ? addCommas(movie.budget) : 'N/A'}</li>
+          <li><span class="text-secondary">Revenue:</span> ${movie.revenue ? addCommas(movie.revenue) : 'N/A'}</li>
+          <li><span class="text-secondary">Runtime:</span> ${convertMinutes(movie.runtime)}</li>
+          <li><span class="text-secondary">Status:</span> ${movie.status}</li>
+        </ul>
+
+        <h4>Production Companies</h4>
+        <div class="list-group">
+          ${companies.map((c) => `<span>${c}</span>`).join('')}
+        </div>
+      </div>
+    `;
+
+    document.querySelector('#movie-details').appendChild(div);
+  } catch (error) {
+    console.error(error);
+
+    // User-friendly UI error
+    document.querySelector('#movie-details').innerHTML = `
+      <div class="text-danger">
+        Unable to load movie details. Please try again later.
+      </div>
+    `;
+  }
+}
+
 // Highlight active link
 function highlightActiveLink() {
   const links = document.querySelectorAll('.nav-link');
@@ -156,7 +242,7 @@ function init() {
       displayPopularShows();
       break;
     case '/movie-details.html':
-      console.log('Movie Details');
+      displayMovieDetails();
       break;
     case '/tv-details.html':
       console.log('TV Details');
