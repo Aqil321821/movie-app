@@ -1,6 +1,7 @@
 const global = {
   currentPage: window.location.pathname,
 };
+const alert = document.getElementById('alert');
 
 //functions to show hide spinner
 function showSpinner() {
@@ -9,11 +10,20 @@ function showSpinner() {
 function hideSpinner() {
   document.querySelector('.spinner').classList.remove('show');
 }
+// function isOnline() {
+//   if (!navigator.onLine) {
+//     alert.classList.add('alert alert-error');
+//     alert.innerHTML = `<p>You are offline. Please check your internet connection.</p>`;
+//     return;
+//   }
+// }
 
 // Fetch function with error handling
 async function fetchAPIData(endpoint) {
   const API_KEY = 'd6113b9aa3f89f46512368fe8d5837ac';
   const API_URL = 'https://api.themoviedb.org/3/';
+  // First check: is user offline?
+
   try {
     const response = await fetch(`${API_URL}${endpoint}?api_key=${API_KEY}&language=en-US`);
     if (!response.ok) {
@@ -52,19 +62,13 @@ function dispalyBackdrop(type, backgorundPath) {
   overlayDiv.style.backgroundImage = `url(https://image.tmdb.org/t/p/original/${backgorundPath})`;
   if (type === 'movie') {
     document.querySelector('#movie-details').appendChild(overlayDiv);
+  } else {
+    document.querySelector('#show-details').appendChild(overlayDiv);
   }
 }
 
 // Display Popular Movies
 async function displayPopularMovies() {
-  // First check: is user offline?
-  if (!navigator.onLine) {
-    const container = document.querySelector('#popular-movies');
-    if (container) {
-      container.innerHTML = `<p class="text-danger">You are offline. Please check your internet connection.</p>`;
-    }
-    return;
-  }
   showSpinner();
   const data = await fetchAPIData('movie/popular');
   if (!data || !data.results) {
@@ -72,6 +76,7 @@ async function displayPopularMovies() {
     if (container) {
       container.innerHTML = `<p class="text-danger">Failed to load movies. Please try again later.</p>`;
     }
+    hideSpinner();
     return;
   }
 
@@ -106,14 +111,6 @@ async function displayPopularMovies() {
 
 //display popular shows
 async function displayPopularShows() {
-  // First check: is user offline?
-  if (!navigator.onLine) {
-    const container = document.querySelector('#popular-movies');
-    if (container) {
-      container.innerHTML = `<p class="text-danger">You are offline. Please check your internet connection.</p>`;
-    }
-    return;
-  }
   showSpinner();
   const data = await fetchAPIData('tv/popular');
   if (!data || !data.results) {
@@ -121,6 +118,7 @@ async function displayPopularShows() {
     if (container) {
       container.innerHTML = `<p class="text-danger">Failed to load Shows. Please try again later.</p>`;
     }
+    hideSpinner();
     return;
   }
 
@@ -155,22 +153,15 @@ async function displayPopularShows() {
 
 //display Movie Details:
 async function displayMovieDetails() {
-  // First check: is user offline?
-  if (!navigator.onLine) {
-    const container = document.querySelector('#movie-details');
-    if (container) {
-      container.innerHTML = `<p class="text-danger">You are offline. Please check your internet connection.</p>`;
-    }
-    return;
-  }
   try {
     const movieID = new URLSearchParams(window.location.search).get('id');
     // safety check
     if (!movieID) {
       throw new Error('Movie ID not found');
     }
-
+    showSpinner();
     const movie = await fetchAPIData(`movie/${movieID}`);
+    hideSpinner();
 
     const companies = movie.production_companies.map((c) => c.name);
     const movieGen = movie.genres.map((g) => g.name);
@@ -222,10 +213,91 @@ async function displayMovieDetails() {
 
     document.querySelector('#movie-details').appendChild(div);
   } catch (error) {
-    console.error(error);
-
     // User-friendly UI error
     document.querySelector('#movie-details').innerHTML = `
+      <div class="text-danger">
+        Unable to load movie details. Please try again later.
+      </div>
+    `;
+  }
+}
+
+async function displayShowDetails() {
+  try {
+    const showID = new URLSearchParams(window.location.search).get('id');
+    // safety check
+    if (!showID) {
+      throw new Error('show ID not found');
+    }
+    showSpinner();
+    const show = await fetchAPIData(`tv/${showID}`);
+    console.log(show);
+    hideSpinner();
+
+    const companies = show.production_companies.map((c) => c.name);
+    const showGen = show.genres.map((g) => g.name);
+    let last_date = show.last_air_date;
+    last_date = new Date(last_date).toLocaleDateString('en-PK', {
+      day: '2-digit',
+      month: 'long',
+      year: 'numeric',
+    });
+    console.log(last_date);
+
+    //overlay for background image
+    dispalyBackdrop('tv', show.backdrop_path);
+
+    const div = document.createElement('div');
+
+    div.innerHTML = `
+      <div class="details-top">
+        <div>
+          ${
+            show.poster_path
+              ? `<img src="https://image.tmdb.org/t/p/w500${show.poster_path}" alt="${show.name}" />`
+              : `<img src="images/no-image.jpg" alt="${show.name}" />`
+          }
+        </div>
+        <div>
+          <h2>${show.name}</h2>
+          <p><i class="fas fa-star text-primary"></i> ${show.vote_average.toFixed(1)}</p>
+          <p class="text-muted">Release Date: ${show.first_air_date}</p>
+          <p class="text-muted"></p>
+          <p>${show.overview}</p>
+
+          <h5>Genres</h5>
+          <ul class="list-group">
+            ${showGen.map((g) => `<li>${g}</li>`).join('')}
+          </ul>
+
+          <a href="${show.homepage}" target="_blank" class="btn">show Homepage</a>
+        </div>
+      </div>
+
+      <div class="details-bottom">
+        <h2>show Info</h2>
+        <ul>
+          <li><span class="text-secondary">Number Of Episodes: </span> ${
+            show.number_of_episodes ? show.number_of_episodes : 'N/A'
+          }</li>
+          <li><span class="text-secondary">Seasons : </span> ${
+            show.number_of_seasons ? show.number_of_seasons : 'N/A'
+          }</li>
+          <li><span class="text-secondary">Last Episode Aired :</span>  ${last_date}</li>
+          <li><span class="text-secondary">Last Epsiode to Air:</span> ${show.last_episode_to_air.name}</li>
+        </ul>
+
+        <h4>Production Companies</h4>
+        <div class="list-group">
+          ${companies.map((c) => `<span>${c}</span>`).join('')}
+        </div>
+      </div>
+    `;
+
+    document.querySelector('#show-details').appendChild(div);
+  } catch (error) {
+    // User-friendly UI error
+    document.querySelector('#show-details').innerHTML = `
       <div class="text-danger">
         Unable to load movie details. Please try again later.
       </div>
@@ -257,7 +329,7 @@ function init() {
       displayMovieDetails();
       break;
     case '/tv-details.html':
-      console.log('TV Details');
+      displayShowDetails();
       break;
     case '/search.html':
       console.log('Search');
