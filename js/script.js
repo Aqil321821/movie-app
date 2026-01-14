@@ -46,6 +46,15 @@ function addCommas(number) {
   return number.toLocaleString();
 }
 
+function dispalyBackdrop(type, backgorundPath) {
+  const overlayDiv = document.createElement('div');
+  overlayDiv.classList.add('overlay');
+  overlayDiv.style.backgroundImage = `url(https://image.tmdb.org/t/p/original/${backgorundPath})`;
+  if (type === 'movie') {
+    document.querySelector('#movie-details').appendChild(overlayDiv);
+  }
+}
+
 // Display Popular Movies
 async function displayPopularMovies() {
   // First check: is user offline?
@@ -165,6 +174,9 @@ async function displayMovieDetails() {
 
     const companies = movie.production_companies.map((c) => c.name);
     const movieGen = movie.genres.map((g) => g.name);
+
+    //overlay for background image
+    dispalyBackdrop('movie', movie.backdrop_path);
 
     const div = document.createElement('div');
 
