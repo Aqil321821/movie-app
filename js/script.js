@@ -6,6 +6,7 @@ const global = {
     type: '',
     page: 1,
     totalPages: 1,
+    totalResults: 0,
   },
   api: {
     apiKey: 'd6113b9aa3f89f46512368fe8d5837ac',
@@ -406,7 +407,11 @@ async function search() {
   global.search.type = urlParams.get('type');
   global.search.term = urlParams.get('search-term');
   if (global.search.term !== '' && global.search.term !== null) {
-    const { results, total_pages, page } = await searchAPIData();
+    const { results, total_pages, page, total_results } = await searchAPIData();
+    global.search.page = page;
+    global.search.totalPages = total_pages;
+    global.search.totalResults = total_results;
+
     if (results.length === 0) {
       showAlert('No results found', 'error');
       return;
@@ -449,8 +454,18 @@ function displaySearchResults(results) {
         </p>
       </div>
     `;
+
     document.querySelector('#search-results').appendChild(div);
   });
+  let headEl = document.querySelector('#search-results-heading');
+  console.log(headEl);
+  headEl.innerHTML = `
+  <h2>
+      ${results.length} of ${global.search.totalResults} Results for ${global.search.term}
+    </h2>
+  
+  
+  `;
 }
 
 // Highlight active link
