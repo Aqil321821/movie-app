@@ -1,6 +1,5 @@
 const global = {
   currentPage: window.location.pathname,
-
   search: {
     term: '',
     type: '',
@@ -11,6 +10,10 @@ const global = {
   api: {
     apiKey: 'd6113b9aa3f89f46512368fe8d5837ac',
     apiURL: 'https://api.themoviedb.org/3/',
+  },
+  popularMovies: {
+    page: 1,
+    totalPages: 1,
   },
 };
 
@@ -55,7 +58,7 @@ async function searchAPIData() {
   try {
     showSpinner();
     const response = await fetch(
-      `${API_URL}search/${global.search.type}?api_key=${API_KEY}&language=en-US&query=${global.search.term}`
+      `${API_URL}search/${global.search.type}?api_key=${API_KEY}&language=en-US&query=${global.search.term}&page=${global.search.page}`
     );
     if (!response.ok) {
       hideSpinner();
@@ -402,28 +405,53 @@ async function displayShowDetails() {
 //search movies/shows
 async function search() {
   const queryString = window.location.search;
-  //get separete values from URL
   const urlParams = new URLSearchParams(queryString);
-  global.search.type = urlParams.get('type');
+
+  global.search.type = urlParams.get('type'); // 'movie' ya 'tv'
   global.search.term = urlParams.get('search-term');
-  if (global.search.term !== '' && global.search.term !== null) {
-    const { results, total_pages, page, total_results } = await searchAPIData();
+
+  if (!global.search.term) {
+    showAlert('Please Enter a Search term', 'error');
+    return;
+  }
+
+  try {
+    let { results, total_pages, page, total_results } = await searchAPIData();
+
+    if (!results || results.length === 0) {
+      showAlert('No results found', 'error');
+      return;
+    }
+
+    // Decide which date field to use
+    const dateField = global.search.type === 'movie' ? 'release_date' : 'first_air_date';
+
+    // Sort results: newest first
+    results = results.sort((a, b) => {
+      const dateA = a[dateField] ? new Date(a[dateField]) : 0;
+      const dateB = b[dateField] ? new Date(b[dateField]) : 0;
+      return dateB - dateA;
+    });
+
+    // Update global state
     global.search.page = page;
     global.search.totalPages = total_pages;
     global.search.totalResults = total_results;
 
-    if (results.length === 0) {
-      showAlert('No results found', 'error');
-      return;
-    }
+    // Display results
     displaySearchResults(results);
     document.querySelector('#search-term').value = '';
-    console.log(results);
-  } else {
-    showAlert('Please Enter a Search term', 'error');
+  } catch (error) {
+    console.error(error);
+    showAlert('Something went wrong while fetching search results', 'error');
   }
 }
+
 function displaySearchResults(results) {
+  //claer previous rsluts
+  document.querySelector('#search-results').innerHTML = '';
+  document.querySelector('#search-results-heading').innerHTML = '';
+  document.querySelector('#pagination').innerHTML = '';
   results.forEach((result) => {
     const div = document.createElement('div');
     div.classList.add('card');
@@ -461,11 +489,43 @@ function displaySearchResults(results) {
   console.log(headEl);
   headEl.innerHTML = `
   <h2>
-      ${results.length} of ${global.search.totalResults} Results for ${global.search.term}
-    </h2>
-  
-  
+  ${results.length} of ${global.search.totalResults} Results for ${global.search.term}
+  </h2>
   `;
+  displayPagination();
+}
+
+//create and display paginations
+function displayPagination() {
+  const div = document.createElement('div');
+  div.classList.add('pagination');
+  div.innerHTML = ` <button class="btn btn-primary" id="prev">Prev</button>
+          <button class="btn btn-primary" id="next">Next</button>
+          <div class="page-counter">Page ${global.search.page} of ${global.search.totalPages}</div>`;
+
+  document.querySelector('#pagination').appendChild(div);
+
+  //disable prv btn
+  if (global.search.page === 1) {
+    document.querySelector('#prev').disabled = true;
+  }
+  //disable next btn
+  if (global.search.page === global.search.totalPages) {
+    document.querySelector('#next').disabled = true;
+  }
+
+  //next page API request
+  document.querySelector('#next').addEventListener('click', async () => {
+    global.search.page++;
+    const { results } = await searchAPIData();
+    displaySearchResults(results);
+  });
+  //prev page API request
+  document.querySelector('#prev').addEventListener('click', async () => {
+    global.search.page--;
+    const { results } = await searchAPIData();
+    displaySearchResults(results);
+  });
 }
 
 // Highlight active link
