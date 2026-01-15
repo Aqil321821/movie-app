@@ -17,10 +17,14 @@ This project focuses on **asynchronous JavaScript**, clean architecture, and rea
 
 ---
 
+##### Live Link:
+
+###### [Live Demo](https://movie-app-aqil.netlify.app/)
+
 ## 🛠️ Tech Stack
 
-- **HTML5** – Semantic markup  
-- **CSS3** – Responsive layout  
+- **HTML5** – Semantic markup
+- **CSS3** – Responsive layout
 - **JavaScript (ES6+)**
   - `async / await`
   - `fetch API`
